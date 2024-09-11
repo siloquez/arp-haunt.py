@@ -6,6 +6,7 @@ import sys
 import socket
 import paramiko
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor
 
 class stl():
     BLK = '\033[30m'
@@ -99,3 +100,6 @@ def display_results(results, port):
 
 scan_results = scan(target_ip)
 display_results(scan_results, port)
+    
+with ThreadPoolExecutor(max_workers=5) as executor:
+    executor.map(display_results, scan_results)
