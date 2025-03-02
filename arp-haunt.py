@@ -35,7 +35,7 @@ print(f"""
 if os.geteuid() != 0:
     sys.exit(f"[{stl.RED}-{stl.RST}] Must run as sudo!")
 
-target_ip = input(f"[{stl.BLU}*{stl.RST}] IP range (192.168.0.0/24): ") or "192.168.0.0/24"
+target_ip = input(f"[{stl.BLU}*{stl.RST}] IP range (192.168.1.0/24): ") or "192.168.1.0/24"
 port = int(input(f"[{stl.BLU}*{stl.RST}] Port (22): ") or 22)
 list_file = input(f"[{stl.BLU}*{stl.RST}] Wordlist (funlist): ") or "funlist"
 username = input(f"[{stl.BLU}*{stl.RST}] Username (h4x0r1337): ") or "h4x0r1337"
