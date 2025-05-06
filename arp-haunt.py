@@ -28,7 +28,7 @@ print(f"""
 {stl.MGN}║{stl.RED}  ▀  ▀ .▀  ▀.▀       ▀▀▀ · ▀  ▀  ▀▀▀ ▀▀ █▪ ▀▀▀  {stl.MGN}║ ║{stl.RST}
 {stl.MGN}║{stl.RED}                                         v1.0   {stl.MGN}║ ║{stl.RST}
 {stl.MGN}╚════════════════════════════════════════════════╝{stl.MGN} ║{stl.RST}
-{stl.MGN} ║{stl.RED}    #m0d3ls!           aurora.yiff.fi            {stl.MGN}║{stl.RST}
+{stl.MGN} ║{stl.RED}    #m0d3ls!           aurora.oops.wtf           {stl.MGN}║{stl.RST}
 {stl.MGN} ╚═════════════════════════════════════════════════╝{stl.RST}
 """)
 
