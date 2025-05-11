@@ -7,7 +7,7 @@ import socket
 import paramiko
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from tqdm import tqdm  # Progress bar
+from tqdm import tqdm
 import time
 
 class stl():
