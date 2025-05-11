@@ -1,8 +1,8 @@
 # arp-haunt.py
 ARP scan &amp; SSH bruteforce
 
-❤️ Scapy & Paramiko
-
+- [Scapy](https://github.com/secdev/scapy) ❤️
+- [Paramiko](https://github.com/paramiko) 🏄
 Ideas for improvement? Hit me up!
 
 https://aurora.oops.wtf
