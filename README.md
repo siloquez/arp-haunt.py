@@ -6,6 +6,7 @@ ARP scan &amp; SSH bruteforce
 
 ----------------
 
+Yes I'm noob, PHP 4 life boys.
 Ideas for improvement? Hit me up!
 
 [aurora.oops.wtf](https://aurora.oops.wtf) 
